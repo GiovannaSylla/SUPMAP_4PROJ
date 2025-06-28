@@ -1,0 +1,36 @@
+version: "3.8"
+
+services:
+  auth-service:
+    build: ./backend/auth-service
+    ports:
+      - "8001:8000"
+  
+  incident-service:
+    build: ./backend/incident-service
+    ports:
+      - "8002:8000"
+  
+  navigation-service:
+    build: ./backend/navigation-service
+    ports:
+      - "8003:8000"
+
+  alert-service:
+    build: ./backend/alert-service
+    ports:
+      - "8004:8000"
+
+  data-service:
+    build: ./backend/data-service
+    ports:
+      - "8005:8000"
+
+  db:
+    image: postgres:14
+    environment:
+      POSTGRES_DB: supmap
+      POSTGRES_USER: supuser
+      POSTGRES_PASSWORD: suppassword
+    ports:
+      - "5432:5432"
