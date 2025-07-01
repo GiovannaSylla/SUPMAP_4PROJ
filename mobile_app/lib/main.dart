@@ -1,11 +1,14 @@
 
+import 'dart:convert';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'signalement_page.dart';
 import 'package:google_place/google_place.dart';
-import 'dart:convert';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 
 void main() {
@@ -66,25 +69,56 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
+  Future<BitmapDescriptor> getResizedIcon(String path, int width) async {
+    final ByteData byteData = await rootBundle.load(path);
+    final Uint8List imageData = byteData.buffer.asUint8List();
+    final codec = await ui.instantiateImageCodec(imageData, targetWidth: width);
+    final frame = await codec.getNextFrame();
+    final resizedImage = await frame.image.toByteData(format: ui.ImageByteFormat.png);
+    return BitmapDescriptor.fromBytes(resizedImage!.buffer.asUint8List());
+  }
+
   Future<void> fetchSignalements() async {
-    final url = Uri.parse("http://localhost:3000/signalements");
+    final url = Uri.parse('http://10.0.2.2:8002/incidents/incidents/');
+
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
         List data = json.decode(response.body);
         Set<Marker> newMarkers = {};
+
         for (var signalement in data) {
           final LatLng position = LatLng(
             signalement['latitude'],
             signalement['longitude'],
           );
-          final type = signalement['type'] ?? "incident";
-          final icon = await BitmapDescriptor.fromAssetImage(
-            ImageConfiguration(size: Size(48, 48)),
-            'assets/icons/$type.png',
-          );
+          final type = signalement['title'] ?? "incident";
+
+          String assetName;
+          switch (type.toLowerCase()) {
+            case "accident":
+              assetName = 'assets/accident.png';
+              break;
+            case "embouteillage":
+              assetName = 'assets/embouteillage.png';
+              break;
+            case "obstacle":
+              assetName = 'assets/obstacle.png';
+              break;
+            case "police":
+              assetName = 'assets/police.png';
+              break;
+            case "barrière":
+              assetName = 'assets/trafficbarrier.png';
+              break;
+            default:
+              assetName = 'assets/accident.png';
+          }
+
+          final icon = await getResizedIcon(assetName, 100);
+
           newMarkers.add(Marker(
-            markerId: MarkerId("signalement_${signalement['id']}"),
+            markerId: MarkerId("signalement_${signalement['title']}_${signalement['latitude']}_${signalement['longitude']}"),
             position: position,
             icon: icon,
             infoWindow: InfoWindow(
@@ -93,6 +127,7 @@ class _MapScreenState extends State<MapScreen> {
             ),
           ));
         }
+
         setState(() {
           _markers.addAll(newMarkers);
         });
@@ -293,8 +328,8 @@ class _MapScreenState extends State<MapScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
+        onPressed: () async {
+          await Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => SignalementPage(
@@ -303,6 +338,8 @@ class _MapScreenState extends State<MapScreen> {
               ),
             ),
           );
+
+          await fetchSignalements();
         },
         backgroundColor: Colors.amber,
         child: Icon(Icons.report_problem, color: Colors.white),

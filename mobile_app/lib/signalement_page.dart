@@ -83,7 +83,7 @@ class _SignalementPageState extends State<SignalementPage>
     } else {
       setState(() => _isSending = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Erreur lors de l'envoi 🚫")),
+        SnackBar(content: Text("Erreur lors de l'envoi")),
       );
     }
   }
@@ -105,7 +105,7 @@ class _SignalementPageState extends State<SignalementPage>
               ),
               SizedBox(height: 16),
               Text(
-                "Incident signalé ✅",
+                "Incident signalé",
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               Text("Code : $_confirmationCode",
