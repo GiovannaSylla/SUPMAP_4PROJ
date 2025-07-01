@@ -37,7 +37,7 @@ class _MapScreenState extends State<MapScreen> {
   late GooglePlace _googlePlace;
   List<AutocompletePrediction> _predictions = [];
   final TextEditingController _searchController = TextEditingController();
-  final String _apiKey = "AIzaSyC46bvErDVSv_G-GBT9HluboE5uJ_zqtcQgit";
+  final String _apiKey = "AIzaSyC46bvErDVSv_G-GBT9HluboE5uJ_zqtcQ";
 
   @override
   void initState() {
@@ -62,6 +62,43 @@ class _MapScreenState extends State<MapScreen> {
       setState(() {
         _currentPosition = LatLng(position.latitude, position.longitude);
       });
+      await fetchSignalements();
+    }
+  }
+
+  Future<void> fetchSignalements() async {
+    final url = Uri.parse("http://localhost:3000/signalements");
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        List data = json.decode(response.body);
+        Set<Marker> newMarkers = {};
+        for (var signalement in data) {
+          final LatLng position = LatLng(
+            signalement['latitude'],
+            signalement['longitude'],
+          );
+          final type = signalement['type'] ?? "incident";
+          final icon = await BitmapDescriptor.fromAssetImage(
+            ImageConfiguration(size: Size(48, 48)),
+            'assets/icons/$type.png',
+          );
+          newMarkers.add(Marker(
+            markerId: MarkerId("signalement_${signalement['id']}"),
+            position: position,
+            icon: icon,
+            infoWindow: InfoWindow(
+              title: type.toUpperCase(),
+              snippet: signalement['description'] ?? "Pas de description",
+            ),
+          ));
+        }
+        setState(() {
+          _markers.addAll(newMarkers);
+        });
+      }
+    } catch (e) {
+      print("Erreur lors de la récupération des signalements : $e");
     }
   }
 
@@ -85,7 +122,6 @@ class _MapScreenState extends State<MapScreen> {
     if (placeId != null) {
       final details = await _googlePlace.details.get(placeId);
       final location = details?.result?.geometry?.location;
-
       if (location != null) {
         final latLng = LatLng(location.lat!, location.lng!);
         _controller?.animateCamera(CameraUpdate.newLatLng(latLng));
@@ -93,7 +129,6 @@ class _MapScreenState extends State<MapScreen> {
         setState(() {
           _predictions = [];
         });
-
         await _showRoute(latLng);
       }
     }
@@ -101,32 +136,24 @@ class _MapScreenState extends State<MapScreen> {
 
   Future<void> _showRoute(LatLng destination) async {
     if (_currentPosition == null) return;
-
     final origin = '${_currentPosition!.latitude},${_currentPosition!.longitude}';
     final dest = '${destination.latitude},${destination.longitude}';
-    final url =
-        'https://maps.googleapis.com/maps/api/directions/json?origin=$origin&destination=$dest&alternatives=true&key=$_apiKey';
-
+    final url = 'https://maps.googleapis.com/maps/api/directions/json?origin=$origin&destination=$dest&alternatives=true&key=$_apiKey';
     final response = await http.get(Uri.parse(url));
-
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       final routes = data['routes'];
-
       if (routes != null && routes.isNotEmpty) {
         setState(() {
           _polylines.clear();
           _markers.removeWhere((m) => m.markerId.value.startsWith("duration_"));
         });
-
         for (int i = 0; i < routes.length; i++) {
           final route = routes[i];
           final points = route['overview_polyline']['points'];
           final decodedPoints = _decodePolyline(points);
           final duration = route['legs'][0]['duration']['text'];
-
           final color = (i == 0) ? Colors.blue : Colors.purple;
-
           setState(() {
             _polylines.add(Polyline(
               polylineId: PolylineId("route_$i"),
@@ -137,7 +164,6 @@ class _MapScreenState extends State<MapScreen> {
                 await _showRoute(destination);
               },
             ));
-
             _markers.add(Marker(
               markerId: MarkerId("duration_$i"),
               position: decodedPoints.last,
@@ -159,7 +185,6 @@ class _MapScreenState extends State<MapScreen> {
     List<LatLng> polyline = [];
     int index = 0, len = encoded.length;
     int lat = 0, lng = 0;
-
     while (index < len) {
       int b, shift = 0, result = 0;
       do {
@@ -169,7 +194,6 @@ class _MapScreenState extends State<MapScreen> {
       } while (b >= 0x20);
       int dlat = ((result & 1) != 0) ? ~(result >> 1) : (result >> 1);
       lat += dlat;
-
       shift = 0;
       result = 0;
       do {
@@ -179,10 +203,8 @@ class _MapScreenState extends State<MapScreen> {
       } while (b >= 0x20);
       int dlng = ((result & 1) != 0) ? ~(result >> 1) : (result >> 1);
       lng += dlng;
-
       polyline.add(LatLng(lat / 1E5, lng / 1E5));
     }
-
     return polyline;
   }
 
@@ -211,7 +233,6 @@ class _MapScreenState extends State<MapScreen> {
             markers: _markers,
             polylines: _polylines,
           ),
-
           Positioned(
             top: 40,
             left: 20,
@@ -240,7 +261,6 @@ class _MapScreenState extends State<MapScreen> {
                     ),
                   ),
                 ),
-
                 if (_predictions.isNotEmpty)
                   Container(
                     margin: EdgeInsets.only(top: 8),
