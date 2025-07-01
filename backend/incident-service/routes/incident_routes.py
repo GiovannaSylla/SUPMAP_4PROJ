@@ -1,26 +1,22 @@
-from fastapi import APIRouter, Depends, HTTPException
+# app/routes/incident_routes.py
+
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from . import models, database
+
+from models.models import Incident  # Ton modèle SQLAlchemy
+from models.schemas import IncidentBase, IncidentDisplay  # Ton schéma Pydantic
+from models.database import get_db  # Fonction pour obtenir la session DB
 
 router = APIRouter()
 
-# Dépendance pour obtenir une session de BDD
-def get_db():
-    db = database.SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-# Route pour ajouter un nouvel incident
-@router.post("/incidents")
-def create_incident(incident: models.Incident, db: Session = Depends(get_db)):
-    db.add(incident)
+@router.post("/incidents/")
+def create_incident(incident: IncidentBase, db: Session = Depends(get_db)):
+    new_incident = Incident(**incident.dict())
+    db.add(new_incident)
     db.commit()
-    db.refresh(incident)
-    return incident
+    db.refresh(new_incident)
+    return new_incident
 
-# Route pour lister tous les incidents
-@router.get("/incidents")
-def get_incidents(db: Session = Depends(get_db)):
-    return db.query(models.Incident).all()
+@router.get("/incidents/", response_model=list[IncidentDisplay])
+def get_all_incidents(db: Session = Depends(get_db)):
+    return db.query(Incident).all()

@@ -10,6 +10,13 @@ services:
     build: ./backend/incident-service
     ports:
       - "8002:8000"
+    depends_on:
+      - db
+    environment:
+      POSTGRES_DB: supmap
+      POSTGRES_USER: supuser
+      POSTGRES_PASSWORD: suppassword
+      POSTGRES_HOST: db
   
   navigation-service:
     build: ./backend/navigation-service
