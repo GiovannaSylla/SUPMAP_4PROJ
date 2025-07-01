@@ -38,6 +38,13 @@ class _MapScreenState extends State<MapScreen> {
   Set<Polyline> _polylines = {};
   bool _avoidTolls = false;
   AutocompletePrediction? _lastSelectedPrediction;
+  bool _showInstructions = true;
+  List<String> _instructions = [];
+  String _removeHtmlTags(String htmlText) {
+    final regex = RegExp(r'<[^>]*>', multiLine: true, caseSensitive: true);
+    return htmlText.replaceAll(regex, '');
+  }
+  List<String> _distances = [];
 
   late GooglePlace _googlePlace;
   List<AutocompletePrediction> _predictions = [];
@@ -174,41 +181,69 @@ class _MapScreenState extends State<MapScreen> {
 
   Future<void> _showRoute(LatLng destination) async {
     if (_currentPosition == null) return;
-    final origin = '${_currentPosition!.latitude},${_currentPosition!.longitude}';
+
+    final origin =
+        '${_currentPosition!.latitude},${_currentPosition!.longitude}';
     final dest = '${destination.latitude},${destination.longitude}';
     final avoid = _avoidTolls ? "&avoid=tolls" : "";
-    final url = 'https://maps.googleapis.com/maps/api/directions/json?origin=$origin&destination=$dest&alternatives=true$avoid&key=$_apiKey';
+    final url = 'https://maps.googleapis.com/maps/api/directions/json?origin=$origin&destination=$dest&alternatives=true$avoid&language=fr&key=$_apiKey';
+
     final response = await http.get(Uri.parse(url));
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       final routes = data['routes'];
+
       if (routes != null && routes.isNotEmpty) {
         setState(() {
           _polylines.clear();
           _markers.removeWhere((m) => m.markerId.value.startsWith("duration_"));
+          _instructions.clear(); // Réinitialise avant d'ajouter les nouvelles
+          _distances.clear();    // Réinitialise les distances aussi
         });
+
         for (int i = 0; i < routes.length; i++) {
           final route = routes[i];
           final points = route['overview_polyline']['points'];
           final decodedPoints = _decodePolyline(points);
           final duration = route['legs'][0]['duration']['text'];
-          final color = (i == 0) ? Colors.blue : Colors.purple;
+
+          if (i == 0) {
+            // Étapes de conduite (uniquement pour la première route)
+            final steps = route['legs'][0]['steps'] as List;
+
+            List<String> tempInstructions = [];
+            List<String> tempDistances = [];
+
+            for (final step in steps) {
+              final html = step['html_instructions'] as String;
+              final instruction = _removeHtmlTags(html);
+              final distance = step['distance']['text']; // exemple "120 m"
+              tempInstructions.add(instruction);
+              tempDistances.add(distance);
+            }
+
+            setState(() {
+              _instructions = tempInstructions;
+              _distances = tempDistances;
+            });
+          }
+
           setState(() {
             _polylines.add(Polyline(
               polylineId: PolylineId("route_$i"),
               points: decodedPoints,
-              color: color,
+              color: (i == 0) ? Colors.blue : Colors.purple,
               width: 6,
               onTap: () async {
                 await _showRoute(destination);
               },
             ));
+
             _markers.add(Marker(
               markerId: MarkerId("duration_$i"),
               position: decodedPoints.last,
-              icon: BitmapDescriptor.defaultMarkerWithHue((i == 0)
-                  ? BitmapDescriptor.hueAzure
-                  : BitmapDescriptor.hueViolet),
+              icon: BitmapDescriptor.defaultMarkerWithHue(
+                  (i == 0) ? BitmapDescriptor.hueAzure : BitmapDescriptor.hueViolet),
               infoWindow: InfoWindow(
                 title: "Itinéraire ${i + 1}",
                 snippet: "Durée : $duration",
@@ -246,10 +281,8 @@ class _MapScreenState extends State<MapScreen> {
     }
     return polyline;
   }
-
   @override
   Widget build(BuildContext context) {
-
     if (_currentPosition == null) {
       return Scaffold(
         body: Center(child: CircularProgressIndicator()),
@@ -273,13 +306,15 @@ class _MapScreenState extends State<MapScreen> {
             markers: _markers,
             polylines: _polylines,
           ),
+
+          // Zone haute (champs + switch + suggestions)
           Positioned(
             top: 40,
             left: 20,
             right: 20,
             child: Column(
               children: [
-                // Champ de départ (rempli automatiquement avec la position actuelle)
+                // Champ de départ
                 Container(
                   margin: EdgeInsets.only(bottom: 8),
                   padding: EdgeInsets.symmetric(horizontal: 16),
@@ -296,7 +331,7 @@ class _MapScreenState extends State<MapScreen> {
                   ),
                   child: TextField(
                     controller: TextEditingController(text: "Ma position actuelle"),
-                    enabled: false, // tu peux le mettre à true si tu veux le modifier
+                    enabled: false,
                     decoration: InputDecoration(
                       hintText: "Départ",
                       border: InputBorder.none,
@@ -305,7 +340,7 @@ class _MapScreenState extends State<MapScreen> {
                   ),
                 ),
 
-                // Champ de destination (autocomplétion active)
+                // Champ destination
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 16),
                   decoration: BoxDecoration(
@@ -329,7 +364,7 @@ class _MapScreenState extends State<MapScreen> {
                   ),
                 ),
 
-                // Bouton éviter les péages
+                // Switch "Éviter les péages"
                 SizedBox(height: 10),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.start,
@@ -340,7 +375,6 @@ class _MapScreenState extends State<MapScreen> {
                         setState(() {
                           _avoidTolls = value;
                           if (_searchController.text.isNotEmpty && _predictions.isEmpty) {
-                            // recalculer l’itinéraire si une destination est déjà sélectionnée
                             _selectPrediction(_lastSelectedPrediction!);
                           }
                         });
@@ -351,7 +385,7 @@ class _MapScreenState extends State<MapScreen> {
                   ],
                 ),
 
-                // Suggestions d'autocomplétion
+                // Liste des suggestions
                 if (_predictions.isNotEmpty)
                   Container(
                     margin: EdgeInsets.only(top: 8),
@@ -374,7 +408,7 @@ class _MapScreenState extends State<MapScreen> {
                         return ListTile(
                           title: Text(p.description ?? ''),
                           onTap: () {
-                            _lastSelectedPrediction = p; // pour recalcul si switch
+                            _lastSelectedPrediction = p;
                             _selectPrediction(p);
                           },
                         );
@@ -384,8 +418,98 @@ class _MapScreenState extends State<MapScreen> {
               ],
             ),
           ),
+
+          // Étapes du trajet
+          if (_instructions.isNotEmpty && _showInstructions)
+            Positioned(
+              bottom: 20,
+              left: 20,
+              right: 20,
+              child: Container(
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 6,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          "Étapes du trajet",
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.close),
+                          onPressed: () {
+                            setState(() {
+                              _showInstructions = false;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 8),
+                    Container(
+                      height: 180,
+                      child: ListView.builder(
+                        itemCount: _instructions.length,
+                        itemBuilder: (context, index) {
+                          final instruction = _instructions[index];
+                          final distance = _distances[index];
+
+                          return Card(
+                            elevation: 3,
+                            margin: EdgeInsets.symmetric(vertical: 4),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: ListTile(
+                              leading: Icon(Icons.turn_right, color: Colors.green),
+                              title: Text(
+                                instruction,
+                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                              ),
+                              subtitle: Text(distance),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          // Bouton pour réafficher les étapes
+          if (!_showInstructions && _instructions.isNotEmpty)
+            Positioned(
+              bottom: 160,
+              right: 20,
+              child: FloatingActionButton.small(
+                backgroundColor: Colors.white,
+                elevation: 3,
+                onPressed: () {
+                  setState(() {
+                    _showInstructions = true;
+                  });
+                },
+                child: Icon(Icons.list, color: Colors.black87),
+              ),
+            ),
         ],
       ),
+
+      // FAB pour signalement
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           await Navigator.push(
@@ -397,7 +521,6 @@ class _MapScreenState extends State<MapScreen> {
               ),
             ),
           );
-
           await fetchSignalements();
         },
         backgroundColor: Colors.amber,
