@@ -36,6 +36,8 @@ class _MapScreenState extends State<MapScreen> {
   LatLng? _currentPosition;
   Set<Marker> _markers = {};
   Set<Polyline> _polylines = {};
+  bool _avoidTolls = false;
+  AutocompletePrediction? _lastSelectedPrediction;
 
   late GooglePlace _googlePlace;
   List<AutocompletePrediction> _predictions = [];
@@ -164,6 +166,7 @@ class _MapScreenState extends State<MapScreen> {
         setState(() {
           _predictions = [];
         });
+        _lastSelectedPrediction = prediction;
         await _showRoute(latLng);
       }
     }
@@ -173,7 +176,8 @@ class _MapScreenState extends State<MapScreen> {
     if (_currentPosition == null) return;
     final origin = '${_currentPosition!.latitude},${_currentPosition!.longitude}';
     final dest = '${destination.latitude},${destination.longitude}';
-    final url = 'https://maps.googleapis.com/maps/api/directions/json?origin=$origin&destination=$dest&alternatives=true&key=$_apiKey';
+    final avoid = _avoidTolls ? "&avoid=tolls" : "";
+    final url = 'https://maps.googleapis.com/maps/api/directions/json?origin=$origin&destination=$dest&alternatives=true$avoid&key=$_apiKey';
     final response = await http.get(Uri.parse(url));
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
@@ -245,6 +249,7 @@ class _MapScreenState extends State<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
+
     if (_currentPosition == null) {
       return Scaffold(
         body: Center(child: CircularProgressIndicator()),
@@ -274,6 +279,33 @@ class _MapScreenState extends State<MapScreen> {
             right: 20,
             child: Column(
               children: [
+                // Champ de départ (rempli automatiquement avec la position actuelle)
+                Container(
+                  margin: EdgeInsets.only(bottom: 8),
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(32),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black26,
+                        blurRadius: 8,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: TextField(
+                    controller: TextEditingController(text: "Ma position actuelle"),
+                    enabled: false, // tu peux le mettre à true si tu veux le modifier
+                    decoration: InputDecoration(
+                      hintText: "Départ",
+                      border: InputBorder.none,
+                      icon: Icon(Icons.my_location, color: Colors.green),
+                    ),
+                  ),
+                ),
+
+                // Champ de destination (autocomplétion active)
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 16),
                   decoration: BoxDecoration(
@@ -290,12 +322,36 @@ class _MapScreenState extends State<MapScreen> {
                   child: TextField(
                     controller: _searchController,
                     decoration: InputDecoration(
-                      hintText: "Où va-t-on ?",
+                      hintText: "Où va-t-on ? (destination)",
                       border: InputBorder.none,
                       icon: Icon(Icons.search, color: Colors.grey),
                     ),
                   ),
                 ),
+
+                // Bouton éviter les péages
+                SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    Switch(
+                      value: _avoidTolls,
+                      onChanged: (value) {
+                        setState(() {
+                          _avoidTolls = value;
+                          if (_searchController.text.isNotEmpty && _predictions.isEmpty) {
+                            // recalculer l’itinéraire si une destination est déjà sélectionnée
+                            _selectPrediction(_lastSelectedPrediction!);
+                          }
+                        });
+                      },
+                      activeColor: Colors.amber,
+                    ),
+                    Text("Éviter les péages", style: TextStyle(fontSize: 16)),
+                  ],
+                ),
+
+                // Suggestions d'autocomplétion
                 if (_predictions.isNotEmpty)
                   Container(
                     margin: EdgeInsets.only(top: 8),
@@ -317,7 +373,10 @@ class _MapScreenState extends State<MapScreen> {
                         final p = _predictions[index];
                         return ListTile(
                           title: Text(p.description ?? ''),
-                          onTap: () => _selectPrediction(p),
+                          onTap: () {
+                            _lastSelectedPrediction = p; // pour recalcul si switch
+                            _selectPrediction(p);
+                          },
                         );
                       },
                     ),
