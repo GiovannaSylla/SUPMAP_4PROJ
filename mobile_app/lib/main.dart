@@ -39,6 +39,9 @@ class _MapScreenState extends State<MapScreen> {
   bool _avoidTolls = false;
   AutocompletePrediction? _lastSelectedPrediction;
   bool _showInstructions = true;
+  bool _isNavigating = false;
+  bool _hasAlerted = false;
+  Marker? _movingMarker;
   List<String> _instructions = [];
   String _removeHtmlTags(String htmlText) {
     final regex = RegExp(r'<[^>]*>', multiLine: true, caseSensitive: true);
@@ -161,6 +164,61 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
+  void _startNavigation() async {
+    if (_polylines.isEmpty) return;
+
+    setState(() {
+      _isNavigating = true;
+      _hasAlerted = false; // Pour l'alerte visuelle
+    });
+
+    final List<LatLng> points = _polylines.first.points;
+
+    for (int i = 0; i < points.length; i++) {
+      await Future.delayed(Duration(milliseconds: 400));
+
+      // Mettre à jour le marqueur mobile
+      final currentPoint = points[i];
+      setState(() {
+        _movingMarker = Marker(
+          markerId: MarkerId("moving"),
+          position: currentPoint,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+        );
+        _markers.removeWhere((m) => m.markerId.value == "moving");
+        _markers.add(_movingMarker!);
+      });
+
+      _controller?.animateCamera(CameraUpdate.newLatLng(currentPoint));
+
+      // Vérifie la distance avec le point suivant
+      if (i < points.length - 1) {
+        final nextPoint = points[i + 1];
+        double distance = Geolocator.distanceBetween(
+          currentPoint.latitude,
+          currentPoint.longitude,
+          nextPoint.latitude,
+          nextPoint.longitude,
+        );
+
+        // Affiche une alerte visuelle si à moins de 500m
+        if (distance <= 500 && !_hasAlerted) {
+          _hasAlerted = true;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("🚨Alerte Changement imminent dans 500 mètres !"),
+              backgroundColor: Colors.redAccent,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+    }
+
+    setState(() {
+      _isNavigating = false;
+    });
+  }
   void _selectPrediction(AutocompletePrediction prediction) async {
     final placeId = prediction.placeId;
     if (placeId != null) {
@@ -174,7 +232,11 @@ class _MapScreenState extends State<MapScreen> {
           _predictions = [];
         });
         _lastSelectedPrediction = prediction;
-        await _showRoute(latLng);
+        _hasAlerted = false;
+
+        await _showRoute(latLng); // Affiche l'itinéraire
+
+        _startNavigation();
       }
     }
   }
@@ -506,7 +568,19 @@ class _MapScreenState extends State<MapScreen> {
                 child: Icon(Icons.list, color: Colors.black87),
               ),
             ),
+          // BOUTON "Y ALLER"
+          if (_instructions.isNotEmpty && !_isNavigating)
+            Positioned(
+              bottom: 100,
+              right: 20,
+              child: FloatingActionButton.extended(
+                onPressed: _startNavigation,
+                backgroundColor: Colors.green,
+                label: Text("Y aller", style: TextStyle(color: Colors.white)),
+              ),
+            ),
         ],
+
       ),
 
       // FAB pour signalement
@@ -528,5 +602,6 @@ class _MapScreenState extends State<MapScreen> {
         tooltip: "Signaler un incident",
       ),
     );
+
   }
 }

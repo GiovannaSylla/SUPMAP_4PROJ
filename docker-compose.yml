@@ -5,7 +5,9 @@ services:
     build: ./backend/auth-service
     ports:
       - "8001:8000"
-  
+    networks:
+      - backend-network
+
   incident-service:
     build: ./backend/incident-service
     ports:
@@ -17,21 +19,29 @@ services:
       POSTGRES_USER: supuser
       POSTGRES_PASSWORD: suppassword
       POSTGRES_HOST: db
-  
+    networks:
+      - backend-network
+
   navigation-service:
     build: ./backend/navigation-service
     ports:
       - "8003:8000"
+    networks:
+      - backend-network
 
   alert-service:
     build: ./backend/alert-service
     ports:
       - "8004:8000"
+    networks:
+      - backend-network
 
   data-service:
     build: ./backend/data-service
     ports:
       - "8005:8000"
+    networks:
+      - backend-network
 
   db:
     image: postgres:14
@@ -41,3 +51,13 @@ services:
       POSTGRES_PASSWORD: suppassword
     ports:
       - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - backend-network
+
+networks:
+  backend-network:
+
+volumes:
+  pgdata:
