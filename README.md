@@ -19,10 +19,12 @@ SUPMAP est une application mobile Flutter de navigation collaborative. Elle perm
 ⸻
 
 ⚙️ Étapes de lancement
-	1.	Cloner le projet
+        Cloner le projet
 
-git clone https://github.com/SUPMAP_4PROJ.git
-cd supmap
+	1.	git clone https://github.com/SUPMAP_4PROJ.git
+                cd supmap
+
+
 
 	2.	Installer les dépendances
 
