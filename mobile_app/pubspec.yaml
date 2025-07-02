@@ -41,7 +41,7 @@ dependencies:
   geolocator: ^11.0.0
   google_place: ^0.4.7
   permission_handler: ^11.3.1
-
+  url_launcher: ^6.2.5
 
 dev_dependencies:
   flutter_test:

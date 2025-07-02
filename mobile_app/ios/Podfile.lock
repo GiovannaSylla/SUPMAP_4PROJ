@@ -27,6 +27,8 @@ PODS:
   - permission_handler_apple (9.3.0):
     - Flutter
   - SimpleKeychain (1.2.0)
+  - url_launcher_ios (0.0.1):
+    - Flutter
 
 DEPENDENCIES:
   - auth0_flutter (from `.symlinks/plugins/auth0_flutter/darwin`)
@@ -34,6 +36,7 @@ DEPENDENCIES:
   - geolocator_apple (from `.symlinks/plugins/geolocator_apple/darwin`)
   - google_maps_flutter_ios (from `.symlinks/plugins/google_maps_flutter_ios/ios`)
   - permission_handler_apple (from `.symlinks/plugins/permission_handler_apple/ios`)
+  - url_launcher_ios (from `.symlinks/plugins/url_launcher_ios/ios`)
 
 SPEC REPOS:
   trunk:
@@ -54,6 +57,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/google_maps_flutter_ios/ios"
   permission_handler_apple:
     :path: ".symlinks/plugins/permission_handler_apple/ios"
+  url_launcher_ios:
+    :path: ".symlinks/plugins/url_launcher_ios/ios"
 
 SPEC CHECKSUMS:
   Auth0: 2876d0c36857422eda9cb580a6cc896c7d14cb36
@@ -66,6 +71,7 @@ SPEC CHECKSUMS:
   JWTDecode: 7dae24cb9bf9b608eae61e5081029ec169bb5527
   permission_handler_apple: 9878588469a2b0d0fc1e048d9f43605f92e6cec2
   SimpleKeychain: 768cf43ae778b1c21816e94dddf01bb8ee96a075
+  url_launcher_ios: 5334b05cef931de560670eeae103fd3e431ac3fe
 
 PODFILE CHECKSUM: a901b0534ebff1a81cfb53fbf723b1bca433de9f
 

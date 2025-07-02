@@ -1,35 +1,46 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../auth/auth_service.dart';
-import 'home_page.dart';
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final auth = Provider.of<AuthService>(context);
+    return Consumer<AuthService>(
+      builder: (context, auth, _) {
+        // Redirection dès que l'utilisateur est connecté
+        if (auth.isLoggedIn) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            Navigator.pushReplacementNamed(context, '/map');
+          });
+        }
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Connexion')),
-      body: Center(
-        child: auth.isLoggedIn
-            ? const CircularProgressIndicator()
-            : ElevatedButton(
-          onPressed: () async {
-            try {
-              await auth.login();
-              await auth.fetchUserRole(); // ✅ rôle depuis backend
-
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const HomePage()),
-              );
-            } catch (_) {}
-          },
-          child: const Text('Se connecter avec Auth0'),
-        ),
-      ),
+        return Scaffold(
+          appBar: AppBar(title: const Text('Connexion')),
+          body: Center(
+            child: auth.isLoggedIn
+                ? const CircularProgressIndicator()
+                : ElevatedButton(
+              onPressed: () async {
+                try {
+                  print("Connexion via AuthService...");
+                  await auth.login();
+                } catch (e) {
+                  print("Erreur de connexion : $e");
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Erreur Auth0 : $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+              child: const Text('Se connecter avec Auth0'),
+            ),
+          ),
+        );
+      },
     );
   }
 }

@@ -13,7 +13,18 @@ class HomePage extends StatelessWidget {
       appBar: AppBar(title: const Text('Accueil')),
       body: Center(
         child: auth.user == null
-            ? const CircularProgressIndicator()
+            ? Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text('Session expirée'),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pushReplacementNamed(context, '/');
+              },
+              child: const Text('Retour à la connexion'),
+            ),
+          ],
+        )
             : Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -22,12 +33,44 @@ class HomePage extends StatelessWidget {
             Text('Rôle : ${auth.role ?? "chargement..."}'),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: () {
-                auth.logout();
-                Navigator.pop(context);
+              onPressed: () async {
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Déconnexion'),
+                    content: const Text('Voulez-vous vous déconnecter ?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: const Text('Non'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        child: const Text('Oui'),
+                      ),
+                    ],
+                  ),
+                );
+
+                if (confirmed ?? false) {
+                  await auth.logout();
+                  Navigator.pushReplacementNamed(context, '/');
+                }
               },
               child: const Text('Déconnexion'),
-            )
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pushNamed(context, '/map');
+              },
+              icon: const Icon(Icons.map),
+              label: const Text('Voir la carte'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.teal,
+                foregroundColor: Colors.white,
+              ),
+            ),
           ],
         ),
       ),
