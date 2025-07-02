@@ -18,32 +18,30 @@ SUPMAP est une application mobile Flutter de navigation collaborative. Elle perm
 
 ⸻
 
-⚙️ Étapes de lancement
-        Cloner le projet
+⚙️ Étapes de lancement : Cloner le projet
 
 	1.	git clone https://github.com/SUPMAP_4PROJ.git
                 cd supmap
 
+-Installer les dépendances
+
+	2.	flutter pub get
+
+-Nettoyer le cache (si besoin)
+
+	3.	flutter clean
+                flutter pub get
+
+-Configurer votre clé Google Maps: Dans un fichier .env (ou dans lib/.env selon l’implémentation), ajoutez :
 
 
-	2.	Installer les dépendances
+	4.	GOOGLE_MAPS_API_KEY=YOUR_GOOGLE_API_KEY
 
-flutter pub get
+-Lancer l’application
 
-	3.	Nettoyer le cache (si besoin)
 
-flutter clean
-flutter pub get
+	5. flutter run	
 
-	4.	Configurer votre clé Google Maps
-
-Dans un fichier .env (ou dans lib/.env selon l’implémentation), ajoutez :
-
-GOOGLE_MAPS_API_KEY=YOUR_GOOGLE_API_KEY
-
-	5.	Lancer l’application
-
-flutter run
 
 
 ⸻
