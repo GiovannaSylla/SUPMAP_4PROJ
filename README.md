@@ -1,6 +1,3 @@
-Parfait Giovanna, tu as un super contenu 👏 ! Il ne manque plus qu’à le formater proprement en Markdown pour qu’il s’affiche bien dans GitHub ou n’importe quel éditeur Markdown (VS Code, GitLab, etc.).
-
-Voici la version bien formatée en .md (Markdown) :
 
 ⸻
 
@@ -134,6 +131,3 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 	•	Oussamah
 
 ---
-
-Tu peux copier-coller ce texte dans ton `README.md` directement.  
-Tu veux aussi que je t’aide à préparer la **documentation technique** (par exemple : `lib/`, `services/`, `models/`, etc.) pour que ton dépôt soit complet ?
