@@ -11,10 +11,10 @@ SUPMAP est une application mobile Flutter de navigation collaborative. Elle perm
 🚀 Lancer le projet Flutter
 
 📋 Prérequis
-	•	✅ Avoir Flutter installé localement (Flutter 3.x recommandé)
-	•	✅ Avoir un émulateur Android/iOS ou un smartphone connecté via USB
-	•	✅ Avoir un compte Google Maps API (clé requise)
-	•	✅ Un backend local tournant avec FastAPI (optionnel si non utilisé)
+	•	Avoir Flutter installé localement (Flutter 3.x recommandé)
+	•	Avoir un émulateur Android/iOS ou un smartphone connecté via USB
+	•	Avoir un compte Google Maps API (clé requise)
+	•	Un backend local tournant avec FastAPI (optionnel si non utilisé)
 
 ⸻
 
